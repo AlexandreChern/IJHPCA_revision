@@ -362,7 +362,7 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
     # @assert nx == mg_struct_CUDA.lnx_mg[1]
     # @assert ny == mg_struct_CUDA.lny_mg[1]
 
-    mg_struct_CUDA.f_mg[1][:] .= copy(f_in)[:]
+    @inbounds mg_struct_CUDA.f_mg[1][:] .= copy(f_in)[:]
     # mg_struct_CUDA.u_mg[1][:] .= CuArray(zeros(nx+1, ny+1))[:]
     # mg_struct_CUDA.r_mg[1][:] .= CuArray(zeros(nx+1, ny+1))[:]
 
@@ -371,7 +371,7 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
 
     mfA_CUDA(mg_struct_CUDA.u_mg[1], mg_struct_CUDA, 1)
     # mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.odata_mg[1][:]
-    mg_struct_CUDA.r_mg[1] .= mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1]
+    @inbounds mg_struct_CUDA.r_mg[1] .= mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1]
 
     # init_rms = compute_l2norm(nx,ny,mg_struct_CUDA.r_mg[1])
 
@@ -400,26 +400,26 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
             for i in 1:v1
                 mfA_CUDA(mg_struct_CUDA.u_mg[1],mg_struct_CUDA,1)
                 # mg_struct_CUDA.u_mg[1][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.odata_mg[1][:])
-                mg_struct_CUDA.u_mg[1] .+= ω_richardson .* (mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1])
+                @inbounds mg_struct_CUDA.u_mg[1] .+= ω_richardson .* (mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1])
             end
         elseif iter_algo == "SOR" #very slow for GPU arrays
-            mg_struct_CUDA.u_mg[1][:] .= sor!(mg_struct_CUDA.u_mg[1][:],mg_struct_CUDA.A_mg[1],mg_struct_CUDA.f_mg[1][:],ω;maxiter=1)
+            @inbounds mg_struct_CUDA.u_mg[1][:] .= sor!(mg_struct_CUDA.u_mg[1][:],mg_struct_CUDA.A_mg[1],mg_struct_CUDA.f_mg[1][:],ω;maxiter=1)
         end
 
         # mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
         mfA_CUDA(mg_struct_CUDA.u_mg[1], mg_struct_CUDA, 1)
         # mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.odata_mg[1][:]
-        mg_struct_CUDA.r_mg[1] .= mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1]
+        @inbounds mg_struct_CUDA.r_mg[1] .= mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1]
 
 
 
         for k = 2:n_level
             if k == 2
-                mg_struct_CUDA.r_mg[k-1] .= mg_struct_CUDA.r_mg[1]
+                @inbounds mg_struct_CUDA.r_mg[k-1] .= mg_struct_CUDA.r_mg[1]
             else
                 mfA_CUDA(mg_struct_CUDA.u_mg[k-1],mg_struct_CUDA,k-1)
                 # mg_struct_CUDA.r_mg[k-1][:] .= mg_struct_CUDA.f_mg[k-1][:] .- mg_struct_CUDA.odata_mg[k-1][:]
-                mg_struct_CUDA.r_mg[k-1] .= mg_struct_CUDA.f_mg[k-1] .- mg_struct_CUDA.odata_mg[k-1]
+                @inbounds mg_struct_CUDA.r_mg[k-1] .= mg_struct_CUDA.f_mg[k-1] .- mg_struct_CUDA.odata_mg[k-1]
             end
             # mg_struct_CUDA.f_mg[k][:] .= mg_struct_CUDA.rest_mg[k-1] * CuArray((mg_struct_CUDA.H_mg[k-1] \ Array(mg_struct_CUDA.r_mg[k-1][:])))
 
@@ -432,7 +432,7 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
             # mg_struct_CUDA.f_mg[k][:] = CUDA.CUSPARSE.CuSparseMatrixCSR(mg_struct_CUDA.H_mg[k]) * mg_struct_CUDA.f_mg[k][:]
             mfA_H(mg_struct_CUDA.f_mg[k],mg_struct_CUDA,k)
             # mg_struct_CUDA.f_mg[k][:] .= mg_struct_CUDA.odata_mg[k][:]
-            mg_struct_CUDA.f_mg[k] .= mg_struct_CUDA.odata_mg[k]
+            @inbounds mg_struct_CUDA.f_mg[k] .= mg_struct_CUDA.odata_mg[k]
 
 
             if k < n_level
@@ -444,10 +444,10 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
                     for i in 1:v1
                         mfA_CUDA(mg_struct_CUDA.u_mg[k],mg_struct_CUDA,k)
                         # mg_struct_CUDA.u_mg[k][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k][:] .- mg_struct_CUDA.odata_mg[k][:])
-                        mg_struct_CUDA.u_mg[k] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k] .- mg_struct_CUDA.odata_mg[k])
+                        @inbounds mg_struct_CUDA.u_mg[k] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k] .- mg_struct_CUDA.odata_mg[k])
                     end
                 elseif iter_algo == "SOR"
-                    mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
+                    @inbounds mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
                 end
             elseif k == n_level
                 if use_direct_sol == true
@@ -460,10 +460,10 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
                         for i in 1:v2
                             mfA_CUDA(mg_struct_CUDA.u_mg[k],mg_struct_CUDA,k)
                             # mg_struct_CUDA.u_mg[k][:] .+= ω_richardson * (mg_struct_CUDA.f_mg[k][:] .- mg_struct_CUDA.odata_mg[k][:])
-                            mg_struct_CUDA.u_mg[k] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k] .- mg_struct_CUDA.odata_mg[k])
+                            @inbounds mg_struct_CUDA.u_mg[k] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k] .- mg_struct_CUDA.odata_mg[k])
                         end
                     elseif iter_algo == "SOR"
-                        mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
+                        @inbounds mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
                     end
                     # @show norm(mg_struct_CUDA.u_mg[k])
                 end
@@ -475,7 +475,7 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
         for k = n_level:-1:2
 
             matrix_free_prolongation_2d_GPU(mg_struct_CUDA.u_mg[k], mg_struct_CUDA.prol_fine_mg[k-1])
-            mg_struct_CUDA.u_mg[k-1] .+= mg_struct_CUDA.prol_fine_mg[k-1]
+            @inbounds mg_struct_CUDA.u_mg[k-1] .+= mg_struct_CUDA.prol_fine_mg[k-1]
 
             
             if iter_algo == "richardson"
@@ -485,7 +485,7 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
                 for i in 1:v3
                     mfA_CUDA(mg_struct_CUDA.u_mg[k-1],mg_struct_CUDA,k-1)
                     # mg_struct_CUDA.u_mg[k-1][:] .+= ω_richardson * (mg_struct_CUDA.f_mg[k-1][:] .- mg_struct_CUDA.odata_mg[k-1][:])
-                    mg_struct_CUDA.u_mg[k-1] .+= ω_richardson * (mg_struct_CUDA.f_mg[k-1] .- mg_struct_CUDA.odata_mg[k-1])
+                    @inbounds mg_struct_CUDA.u_mg[k-1] .+= ω_richardson * (mg_struct_CUDA.f_mg[k-1] .- mg_struct_CUDA.odata_mg[k-1])
                 end
             elseif iter_algo == "SOR"
                 mg_struct_CUDA.u_mg[k-1][:] .= sor!(mg_struct_CUDA.u_mg[k-1][:],mg_struct_CUDA.A_mg[k-1],mg_struct_CUDA.f_mg[k-1][:],ω;maxiter=1)
@@ -494,7 +494,7 @@ function mg_solver_CUDA(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5, v2=
         end
         mfA_CUDA(mg_struct_CUDA.u_mg[1], mg_struct_CUDA, 1)
         # mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.odata_mg[1][:]
-        mg_struct_CUDA.r_mg[1] .= mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1]
+        @inbounds mg_struct_CUDA.r_mg[1] .= mg_struct_CUDA.f_mg[1] .- mg_struct_CUDA.odata_mg[1]
 
 
         # rms = compute_l2norm(mg_struct_CUDA.lnx_mg[1],mg_struct_CUDA.lny_mg[1],mg_struct_CUDA.r_mg[1])
@@ -523,8 +523,8 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         initialize_mg_struct_CUDA(mg_struct_CUDA, nx, ny, n_level)
     end
 
-    disc_error = discretization_errors[nx] # maybe there's a better way to do this
-    @show disc_error
+    # disc_error = discretization_errors[nx] # maybe there's a better way to do this
+    # @show disc_error
 
     # r_CUDA[:] = b_CUDA - A_CUDA * x_CUDA[:]
     mfA_CUDA(mg_struct_CUDA.x_CUDA[1],mg_struct_CUDA,1)
@@ -535,19 +535,19 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
 
 
     init_rms = norm(mg_struct_CUDA.r_CUDA[1])
-    L2_errors = []
+    # L2_errors = []
     # z_CUDA = CuArray(zeros(nx+1,ny+1))
-    L2_error = sqrt(dot(mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:], mg_struct_CUDA.H_mg[1] * (mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]) ))
-    if show_error == true
-        @show 0, init_rms, L2_error
-        push!(L2_errors,L2_error)
-    end
+    # L2_error = sqrt(dot(mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:], mg_struct_CUDA.H_mg[1] * (mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]) ))
+    # if show_error == true
+    #     @show 0, init_rms, L2_error
+    #     push!(L2_errors,L2_error)
+    # end
 
     if precond == true
-        @inbounds mg_solver_CUDA(mg_struct_CUDA, mg_struct_CUDA.r_CUDA[1], n_level = n_level, v1=v1,v2=v2,v3=v3, max_mg_iterations=max_mg_iterations, nx = nx, ny = ny, iter_algo_num=iter_algo_num, dynamic_richardson_ω=dynamic_richardson_ω)
-        mg_struct_CUDA.z_CUDA[1] .= mg_struct_CUDA.u_mg[1]
+        mg_solver_CUDA(mg_struct_CUDA, mg_struct_CUDA.r_CUDA[1], n_level = n_level, v1=v1,v2=v2,v3=v3, max_mg_iterations=max_mg_iterations, nx = nx, ny = ny, iter_algo_num=iter_algo_num, dynamic_richardson_ω=dynamic_richardson_ω)
+        @inbounds mg_struct_CUDA.z_CUDA[1] .= mg_struct_CUDA.u_mg[1]
     else
-        mg_struct_CUDA.z_CUDA[1] .= mg_struct_CUDA.r_CUDA[1]
+        @inbounds mg_struct_CUDA.z_CUDA[1] .= mg_struct_CUDA.r_CUDA[1]
     end
 
     # p_CUDA = CuArray(zeros(size(r_CUDA)))
@@ -582,10 +582,10 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         # L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:])', mg_struct_CUDA.odata_mg[1]))
         # L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1] .- mg_struct_CUDA.u_exact[1]), mg_struct_CUDA.odata_mg[1]))
 
-        if show_error == true
-            @show k, norm_v_initial_norm, L2_error
-            push!(L2_errors, L2_error)
-        end
+        # if show_error == true
+        #     @show k, norm_v_initial_norm, L2_error
+        #     push!(L2_errors, L2_error)
+        # end
 
         # println("")
 
@@ -600,7 +600,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
             mg_struct_CUDA.z_new_CUDA[1] .= copy(mg_struct_CUDA.r_new_CUDA[1])
         end
 
-        β = dot(mg_struct_CUDA.r_new_CUDA[1][:], mg_struct_CUDA.z_new_CUDA[1][:]) / (dot(mg_struct_CUDA.r_CUDA[1][:],mg_struct_CUDA.z_CUDA[1][:]))
+        β = dot(mg_struct_CUDA.r_new_CUDA[1], mg_struct_CUDA.z_new_CUDA[1]) / (dot(mg_struct_CUDA.r_CUDA[1],mg_struct_CUDA.z_CUDA[1]))
 
         @inbounds mg_struct_CUDA.p_CUDA[1][:] .= mg_struct_CUDA.z_new_CUDA[1][:] .+ β .* mg_struct_CUDA.p_CUDA[1][:]
         @inbounds mg_struct_CUDA.z_CUDA[1][:] .= mg_struct_CUDA.z_new_CUDA[1][:]
@@ -612,7 +612,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         # @show k, η_alg, η_tot, η_alg / η_tot
     end
     if show_error == true
-        return return mg_struct_CUDA.x_CUDA[1], counter #, L2_errors
+        return return mg_struct_CUDA.x_CUDA[1], counter, L2_errors
     else
         return mg_struct_CUDA.x_CUDA[1], counter     
     end
@@ -633,7 +633,7 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
     # @assert nx == mg_struct_CUDA.lnx_mg[1]
     # @assert ny == mg_struct_CUDA.lny_mg[1]
 
-    mg_struct_CUDA.f_mg[1][:] .= copy(f_in)[:]
+    @inbounds mg_struct_CUDA.f_mg[1][:] .= copy(f_in)[:]
     # mg_struct_CUDA.u_mg[1][:] .= CuArray(zeros(nx+1, ny+1))[:]
     # mg_struct_CUDA.r_mg[1][:] .= CuArray(zeros(nx+1, ny+1))[:]
 
@@ -642,7 +642,7 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
 
     # mfA_CUDA(mg_struct_CUDA.u_mg[1], mg_struct_CUDA, 1)
     # mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.odata_mg[1][:]
-    mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
+    @inbounds mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
 
     # init_rms = compute_l2norm(nx,ny,mg_struct_CUDA.r_mg[1])
 
@@ -670,25 +670,25 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
             end
             for i in 1:v1
 
-                mg_struct_CUDA.u_mg[1][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:])
+                @inbounds mg_struct_CUDA.u_mg[1][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:])
             end
         elseif iter_algo == "SOR" #very slow for GPU arrays
-            mg_struct_CUDA.u_mg[1][:] .= sor!(mg_struct_CUDA.u_mg[1][:],mg_struct_CUDA.A_mg[1],mg_struct_CUDA.f_mg[1][:],ω;maxiter=1)
+            @inbounds mg_struct_CUDA.u_mg[1][:] .= sor!(mg_struct_CUDA.u_mg[1][:],mg_struct_CUDA.A_mg[1],mg_struct_CUDA.f_mg[1][:],ω;maxiter=1)
         end
 
-        mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
+        @inbounds mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
 
 
         for k = 2:n_level
             if k == 2
-                mg_struct_CUDA.r_mg[k-1] .= mg_struct_CUDA.r_mg[1]
+                @inbounds mg_struct_CUDA.r_mg[k-1] .= mg_struct_CUDA.r_mg[1]
             else
-                mg_struct_CUDA.r_mg[k-1][:] .= mg_struct_CUDA.f_mg[k-1][:] .- mg_struct_CUDA.A_mg[k-1] * mg_struct_CUDA.u_mg[k-1][:]
+                @inbounds mg_struct_CUDA.r_mg[k-1][:] .= mg_struct_CUDA.f_mg[k-1][:] .- mg_struct_CUDA.A_mg[k-1] * mg_struct_CUDA.u_mg[k-1][:]
             end
             # mg_struct_CUDA.f_mg[k][:] .= mg_struct_CUDA.rest_mg[k-1] * CuArray((mg_struct_CUDA.H_mg[k-1] \ Array(mg_struct_CUDA.r_mg[k-1][:])))
-            mg_struct_CUDA.f_mg[k][:] .= mg_struct_CUDA.rest_mg[k-1] * mg_struct_CUDA.H_inv_mg[k-1] * mg_struct_CUDA.r_mg[k-1][:]
+            @inbounds mg_struct_CUDA.f_mg[k][:] .= mg_struct_CUDA.rest_mg[k-1] * mg_struct_CUDA.H_inv_mg[k-1] * mg_struct_CUDA.r_mg[k-1][:]
             
-            mg_struct_CUDA.f_mg[k][:] = mg_struct_CUDA.H_mg[k] * mg_struct_CUDA.f_mg[k][:]
+            @inbounds mg_struct_CUDA.f_mg[k][:] = mg_struct_CUDA.H_mg[k] * mg_struct_CUDA.f_mg[k][:]
 
 
             if k < n_level
@@ -698,10 +698,10 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
                         ω_richardson = 2 / (mg_struct_CUDA.λ_mins[k] + mg_struct_CUDA.λ_maxs[k])
                     end
                     for i in 1:v1
-                        mg_struct_CUDA.u_mg[k][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k][:] .- mg_struct_CUDA.A_mg[k] * mg_struct_CUDA.u_mg[k][:])
+                        @inbounds mg_struct_CUDA.u_mg[k][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k][:] .- mg_struct_CUDA.A_mg[k] * mg_struct_CUDA.u_mg[k][:])
                     end
                 elseif iter_algo == "SOR"
-                    mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
+                    @inbounds mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
                 end
             elseif k == n_level
                 if use_direct_sol == true
@@ -712,10 +712,10 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
                             ω_richardson = 2 / (mg_struct_CUDA.λ_mins[k] + mg_struct_CUDA.λ_maxs[k])
                         end
                         for i in 1:v2
-                            mg_struct_CUDA.u_mg[k][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k][:] .- mg_struct_CUDA.A_mg[k] * mg_struct_CUDA.u_mg[k][:])
+                            @inbounds mg_struct_CUDA.u_mg[k][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k][:] .- mg_struct_CUDA.A_mg[k] * mg_struct_CUDA.u_mg[k][:])
                         end
                     elseif iter_algo == "SOR"
-                        mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
+                        @inbounds mg_struct_CUDA.u_mg[k][:] .= sor!(mg_struct_CUDA.u_mg[k][:],mg_struct_CUDA.A_mg[k],mg_struct_CUDA.f_mg[k][:],ω;maxiter=1)
                     end
                     # @show norm(mg_struct_CUDA.u_mg[k])
                 end
@@ -727,8 +727,8 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
         for k = n_level:-1:2
 
             # matrix_free_prolongation_2d_GPU(mg_struct_CUDA.u_mg[k], mg_struct_CUDA.prol_fine_mg[k-1])
-            mg_struct_CUDA.prol_fine_mg[k-1][:] .= mg_struct_CUDA.prol_mg[k-1] * mg_struct_CUDA.u_mg[k][:]
-            mg_struct_CUDA.u_mg[k-1] .+= mg_struct_CUDA.prol_fine_mg[k-1]
+            @inbounds mg_struct_CUDA.prol_fine_mg[k-1][:] .= mg_struct_CUDA.prol_mg[k-1] * mg_struct_CUDA.u_mg[k][:]
+            @inbounds mg_struct_CUDA.u_mg[k-1] .+= mg_struct_CUDA.prol_fine_mg[k-1]
 
             
             if iter_algo == "richardson"
@@ -736,15 +736,15 @@ function mg_solver_CUDA_SpMV(mg_struct_CUDA, f_in; nx=64, ny=64, n_level=3, v1=5
                     ω_richardson = 2 / (mg_struct_CUDA.λ_mins[k-1] + mg_struct_CUDA.λ_maxs[k-1])
                 end
                 for i in 1:v3
-                    mg_struct_CUDA.u_mg[k-1][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k-1][:] .- mg_struct_CUDA.A_mg[k-1] * mg_struct_CUDA.u_mg[k-1][:])
+                    @inbounds mg_struct_CUDA.u_mg[k-1][:] .+= ω_richardson .* (mg_struct_CUDA.f_mg[k-1][:] .- mg_struct_CUDA.A_mg[k-1] * mg_struct_CUDA.u_mg[k-1][:])
                 end
             elseif iter_algo == "SOR"
-                mg_struct_CUDA.u_mg[k-1][:] .= sor!(mg_struct_CUDA.u_mg[k-1][:],mg_struct_CUDA.A_mg[k-1],mg_struct_CUDA.f_mg[k-1][:],ω;maxiter=1)
+                @inbounds mg_struct_CUDA.u_mg[k-1][:] .= sor!(mg_struct_CUDA.u_mg[k-1][:],mg_struct_CUDA.A_mg[k-1],mg_struct_CUDA.f_mg[k-1][:],ω;maxiter=1)
             end
             
         end
   
-        mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
+        @inbounds mg_struct_CUDA.r_mg[1][:] .= mg_struct_CUDA.f_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_mg[1][:]
     end
     return mg_struct_CUDA.u_mg[1]
 end
@@ -760,8 +760,8 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
 
     # H_mg_CUDA = mg_struct_CUDA.H_mg[1]
 
-    disc_error = discretization_errors[nx] # maybe there's a better way to do this
-    @show disc_error
+    # disc_error = discretization_errors[nx] # maybe there's a better way to do this
+    # @show disc_error
 
     # r_CUDA[:] = b_CUDA - A_CUDA * x_CUDA[:]
 
@@ -771,19 +771,19 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
     # # mg_struct_CUDA.r_CUDA[1][:] .= mg_struct_CUDA.b_mg[1][:] .- mg_struct_CUDA.odata_mg[1][:]
     # @inbounds mg_struct_CUDA.r_CUDA[1] .= mg_struct_CUDA.b_mg[1] .- mg_struct_CUDA.odata_mg[1]
 
-    mg_struct_CUDA.r_CUDA[1][:] .= mg_struct_CUDA.b_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.x_CUDA[1][:]
+    @inbounds mg_struct_CUDA.r_CUDA[1][:] .= mg_struct_CUDA.b_mg[1][:] .- mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.x_CUDA[1][:]
 
     init_rms = norm(mg_struct_CUDA.r_CUDA[1])
     # z_CUDA = CuArray(zeros(nx+1,ny+1))
 
-    L2_error = sqrt(dot(mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:], mg_struct_CUDA.H_mg[1] * (mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]) ))
-    if show_error == true
-        @show 0, init_rms, L2_error
-    end
+    # L2_error = sqrt(dot(mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:], mg_struct_CUDA.H_mg[1] * (mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]) ))
+    # if show_error == true
+    #     @show 0, init_rms, L2_error
+    # end
 
     if precond == true
         @inbounds mg_solver_CUDA_SpMV(mg_struct_CUDA, mg_struct_CUDA.r_CUDA[1], n_level = n_level, v1=v1,v2=v2,v3=v3, max_mg_iterations=max_mg_iterations, nx = nx, ny = ny, iter_algo_num=iter_algo_num, dynamic_richardson_ω=dynamic_richardson_ω)
-        mg_struct_CUDA.z_CUDA[1][:] .= mg_struct_CUDA.u_mg[1][:]
+        @inbounds mg_struct_CUDA.z_CUDA[1][:] .= mg_struct_CUDA.u_mg[1][:]
     else
         mg_struct_CUDA.z_CUDA[1][:] .= mg_struct_CUDA.r_CUDA[1][:]
     end
@@ -815,7 +815,7 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
         # @show k, norm(x_CUDA[:] - mg_struct_CUDA.u_exact[1][:])
         
         # L2_error = sqrt((mg_struct_CUDA.x_CUDA[1][:] - mg_struct_CUDA.u_exact[1][:])' * CUDA.CUSPARSE.CuSparseMatrixCSR(mg_struct_CUDA.H_mg[1]) * (mg_struct_CUDA.x_CUDA[1][:] - mg_struct_CUDA.u_exact[1][:]) )
-        L2_error = sqrt(dot(mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:], mg_struct_CUDA.H_mg[1] * (mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]) ))
+        # L2_error = sqrt(dot(mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:], mg_struct_CUDA.H_mg[1] * (mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]) ))
 
 
         # mfA_H((mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]),mg_struct_CUDA,1)
@@ -839,7 +839,7 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
             @inbounds mg_struct_CUDA.z_new_CUDA[1] .= mg_struct_CUDA.u_mg[1]
         else
             # mg_struct_CUDA.z_new_CUDA[1] .= copy(mg_struct_CUDA.r_new_CUDA[1])
-            mg_struct_CUDA.z_new_CUDA[1][:] .= mg_struct_CUDA.r_new_CUDA[1][:]
+            @inbounds mg_struct_CUDA.z_new_CUDA[1][:] .= mg_struct_CUDA.r_new_CUDA[1][:]
         end
 
         β = dot(mg_struct_CUDA.r_new_CUDA[1][:], mg_struct_CUDA.z_new_CUDA[1][:]) / (dot(mg_struct_CUDA.r_CUDA[1][:],mg_struct_CUDA.z_CUDA[1][:]))

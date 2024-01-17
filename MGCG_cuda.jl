@@ -563,7 +563,7 @@ if isdefined(:main, :mg_solver)
 end
 
 
-function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, ω_richardson=2/1000, max_cg_iter=10, max_mg_iterations=1,iter_algo_num=3, precond=true,dynamic_richardson_ω=false)
+function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, rel_tol=1e-6, ω_richardson=2/1000, max_cg_iter=10, max_mg_iterations=1,iter_algo_num=3, precond=true,dynamic_richardson_ω=false)
     if nx != mg_struct_CUDA.lnx_mg[1]
         clear_mg_struct_CUDA(mg_struct_CUDA)
         initialize_mg_struct_CUDA(mg_struct_CUDA, nx, ny, n_level)
@@ -618,13 +618,14 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         # L2_error = sqrt((x_CUDA[:] - mg_struct_CUDA.u_exact[1][:])' * CUDA.CUSPARSE.CuSparseMatrixCSR(mg_struct_CUDA.H_mg[1]) * (x_CUDA[:] - mg_struct_CUDA.u_exact[1][:]) )
 
         mfA_H((mg_struct_CUDA.x_CUDA[1][:] - mg_struct_CUDA.u_exact[1][:]),mg_struct_CUDA,1)
-        L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1][:] - mg_struct_CUDA.u_exact[1][:])', mg_struct_CUDA.odata_mg[1]))
+
+        # L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1][:] - mg_struct_CUDA.u_exact[1][:])', mg_struct_CUDA.odata_mg[1]))
 
         # @show k, norm_v_initial_norm, L2_error
 
         # println("")
 
-        if norm(mg_struct_CUDA.r_new_CUDA[1]) < 1e-8 * init_rms
+        if norm(mg_struct_CUDA.r_new_CUDA[1]) < rel_tol * init_rms
             break
         end
 
@@ -696,10 +697,11 @@ end
 
 # solving it on nx = ny = 2048
 
-initialize_mg_struct_CUDA(mg_struct_CUDA, 2048, 2048, 10)
-x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=2048,ny=2048,n_level=10,ω_richardson=2/1000,max_cg_iter=10, dynamic_richardson_ω=false)
+initialize_mg_struct_CUDA(mg_struct_CUDA, 2048, 2048, 11)
+mg_struct_CUDA.x_CUDA[1] .= 0;
+x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=2048,ny=2048,n_level=11,ω_richardson=2/1000,max_cg_iter=10, dynamic_richardson_ω=false)
 
-x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=2048,ny=2048,n_level=10,ω_richardson=2/1000,max_cg_iter=10, dynamic_richardson_ω=true)
+x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=2048,ny=2048,n_level=11,ω_richardson=2/1000,max_cg_iter=10, dynamic_richardson_ω=true)
 
 @btime for _ in 1:1
     mg_struct_CUDA.x_CUDA[1] .= 0
@@ -709,20 +711,24 @@ end
 
 
 # Solving it on nx = ny = 4096
-x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=4096,ny=4096,n_level=11,ω_richardson=2/1000,max_cg_iter=10)
+initialize_mg_struct_CUDA(mg_struct_CUDA, 4096, 4096, 12)
+mg_struct_CUDA.x_CUDA[1] .= 0;
+x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=4096,ny=4096,n_level=12,ω_richardson=2/1000,max_cg_iter=100, dynamic_richardson_ω=true)
 
 @btime for _ in 1:1
-    mg_struct_CUDA.x_CUDA[1] .= 0
-    mgcg_CUDA($mg_struct_CUDA, nx=4096,ny=4096,n_level=11,ω_richardson=2/1000,max_cg_iter=10)
+    @inbounds mg_struct_CUDA.x_CUDA[1] .= 0
+    mgcg_CUDA($mg_struct_CUDA, nx=4096,ny=4096,n_level=12,ω_richardson=2/1000,max_cg_iter=100, dynamic_richardson_ω=true)
 end
 
 
 # Solving it on nx = ny = 8192
-x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=8192,ny=8192,n_level=13,ω_richardson=2/1000,max_cg_iter=10)
+initialize_mg_struct_CUDA(mg_struct_CUDA, 8192, 8192, 13)
+x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=8192,ny=8192,n_level=13,ω_richardson=2/1000,max_cg_iter=100, rel_tol=1e-6, dynamic_richardson_ω=true)
 
 @btime for _ in 1:1
     # x_CUDA, counter = mgcg_CUDA(mg_struct_CUDA, nx=8192,ny=8192,n_level=13,ω_richardson=2/1000,max_cg_iter=10)
-    mgcg_CUDA(mg_struct_CUDA, nx=8192,ny=8192,n_level=13,ω_richardson=2/1000,max_cg_iter=10)
+    mg_struct_CUDA.x_CUDA[1] .= 0;
+    mgcg_CUDA(mg_struct_CUDA, nx=8192,ny=8192,n_level=13,ω_richardson=2/1000,max_cg_iter=100, rel_tol=1e-6, dynamic_richardson_ω=true)
 end
 
 
