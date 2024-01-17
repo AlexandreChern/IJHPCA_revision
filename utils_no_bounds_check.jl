@@ -577,7 +577,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         # L2_error = sqrt((x_CUDA[:] - mg_struct_CUDA.u_exact[1][:])' * CUDA.CUSPARSE.CuSparseMatrixCSR(mg_struct_CUDA.H_mg[1]) * (x_CUDA[:] - mg_struct_CUDA.u_exact[1][:]) )
 
         # mfA_H((mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:]),mg_struct_CUDA,1)
-        mfA_H((mg_struct_CUDA.x_CUDA[1] .- mg_struct_CUDA.u_exact[1]),mg_struct_CUDA,1)
+        # mfA_H((mg_struct_CUDA.x_CUDA[1] .- mg_struct_CUDA.u_exact[1]),mg_struct_CUDA,1)
 
         # L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1][:] .- mg_struct_CUDA.u_exact[1][:])', mg_struct_CUDA.odata_mg[1]))
         # L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1] .- mg_struct_CUDA.u_exact[1]), mg_struct_CUDA.odata_mg[1]))
@@ -612,7 +612,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         # @show k, η_alg, η_tot, η_alg / η_tot
     end
     if show_error == true
-        return return mg_struct_CUDA.x_CUDA[1], counter, L2_errors
+        return return mg_struct_CUDA.x_CUDA[1], counter# , L2_errors
     else
         return mg_struct_CUDA.x_CUDA[1], counter     
     end
