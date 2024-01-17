@@ -190,9 +190,9 @@ end
 
 # MGCG on 8192 by 8192
 clear_mg_struct_CUDA(mg_struct_CUDA)
-mgcg_CUDA(mg_struct_CUDA; nx = 8192, ny = 8192, n_level=13, v1=v2=v3=1, dynamic_richardson_ω=true, max_cg_iter=20, show_error=true, precond=true)
+mgcg_CUDA(mg_struct_CUDA; nx = 8192, ny = 8192, n_level=12, v1=v2=v3=1, dynamic_richardson_ω=true, max_cg_iter=20, show_error=true, precond=true)
 mg_struct_CUDA.x_CUDA[1] .= 0
-mgcg_CUDA(mg_struct_CUDA; nx = 8192, ny = 8192, n_level=13, v1=v2=v3=5, dynamic_richardson_ω=true, max_cg_iter=20, show_error=true, precond=true)
+mgcg_CUDA(mg_struct_CUDA; nx = 8192, ny = 8192, n_level=12, v1=v2=v3=5, dynamic_richardson_ω=true, max_cg_iter=20, show_error=true, precond=true)
 # mgcg_CUDA(mg_struct_CUDA; nx = 8192, ny = 8192, n_level=12, v1=v2=v3=1, dynamic_richardson_ω=true, max_cg_iter=8193^2, show_error=true, precond=false)
 
 

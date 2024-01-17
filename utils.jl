@@ -556,6 +556,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
 
     counter = 0
     for k in 1:max_cg_iter
+        counter += 1
         mfA_CUDA(mg_struct_CUDA.p_CUDA[1],mg_struct_CUDA,1)
 
         # α = dot(r_CUDA[:],z_CUDA[:]) / (dot(p_CUDA[:],A_CUDA * p_CUDA[:]))
@@ -583,7 +584,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         # L2_error = sqrt(dot((mg_struct_CUDA.x_CUDA[1] .- mg_struct_CUDA.u_exact[1]), mg_struct_CUDA.odata_mg[1]))
 
         if show_error == true
-            @show k, norm_v_initial_norm, L2_error
+            @show k, norm_v_initial_norm# , L2_error
             push!(L2_errors, L2_error)
         end
 
@@ -605,14 +606,13 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
         @inbounds mg_struct_CUDA.p_CUDA[1][:] .= mg_struct_CUDA.z_new_CUDA[1][:] .+ β .* mg_struct_CUDA.p_CUDA[1][:]
         @inbounds mg_struct_CUDA.z_CUDA[1][:] .= mg_struct_CUDA.z_new_CUDA[1][:]
         @inbounds mg_struct_CUDA.r_CUDA[1][:] .= mg_struct_CUDA.r_new_CUDA[1][:]
-        counter += 1
-
+       
         # η_alg = dot((x_CUDA[:]), mg_struct_CUDA.A_mg[1] * (x_CUDA[:]))
         # η_tot = dot((mg_struct_CUDA.u_exact[1])[:], mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_exact[1][:])
         # @show k, η_alg, η_tot, η_alg / η_tot
     end
     if show_error == true
-        return return mg_struct_CUDA.x_CUDA[1], counter #, L2_errors
+        return mg_struct_CUDA.x_CUDA[1], counter #, L2_errors
     else
         return mg_struct_CUDA.x_CUDA[1], counter     
     end
@@ -794,6 +794,7 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
 
     counter = 0
     for k in 1:max_cg_iter
+        counter += 1
         # mfA_CUDA(mg_struct_CUDA.p_CUDA[1],mg_struct_CUDA,1)
 
         α = dot(mg_struct_CUDA.r_CUDA[1][:],mg_struct_CUDA.z_CUDA[1][:]) / (dot(mg_struct_CUDA.p_CUDA[1][:],mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.p_CUDA[1][:]))
@@ -847,8 +848,6 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
         @inbounds mg_struct_CUDA.p_CUDA[1][:] .= mg_struct_CUDA.z_new_CUDA[1][:] .+ β .* mg_struct_CUDA.p_CUDA[1][:]
         @inbounds mg_struct_CUDA.z_CUDA[1][:] .= mg_struct_CUDA.z_new_CUDA[1][:]
         @inbounds mg_struct_CUDA.r_CUDA[1][:] .= mg_struct_CUDA.r_new_CUDA[1][:]
-        counter += 1
-
         # η_alg = dot((x_CUDA[:]), mg_struct_CUDA.A_mg[1] * (x_CUDA[:]))
         # η_tot = dot((mg_struct_CUDA.u_exact[1])[:], mg_struct_CUDA.A_mg[1] * mg_struct_CUDA.u_exact[1][:])
         # @show k, η_alg, η_tot, η_alg / η_tot
