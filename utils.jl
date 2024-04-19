@@ -524,7 +524,7 @@ function mgcg_CUDA(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=1.0, 
     end
 
     disc_error = discretization_errors[nx] # maybe there's a better way to do this
-    @show disc_error
+    # @show disc_error
 
     # r_CUDA[:] = b_CUDA - A_CUDA * x_CUDA[:]
     mfA_CUDA(mg_struct_CUDA.x_CUDA[1],mg_struct_CUDA,1)
@@ -761,7 +761,7 @@ function mgcg_CUDA_SpMV(mg_struct_CUDA;nx=64,ny=64,n_level=3,v1=5,v2=5,v3=5, ω=
     # H_mg_CUDA = mg_struct_CUDA.H_mg[1]
 
     disc_error = discretization_errors[nx] # maybe there's a better way to do this
-    @show disc_error
+    # @show disc_error
 
     # r_CUDA[:] = b_CUDA - A_CUDA * x_CUDA[:]
 

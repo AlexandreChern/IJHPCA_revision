@@ -25,8 +25,8 @@ factorization_benchmark_16 = @benchmark lu(A_DDNN_16)
 
 
 
-A_CUDA_CSR = CUDA.CUSPARSE.CuSparseMatrixCSR(A_DDNN)
-A_CUDA_CSC = CUDA.CUSPARSE.CuSparseMatrixCSC(A_DDNN)
+A_CUDA_CSR = CUDA.CUSPARSE.CuSparseMatrixCSR(A_DDNN_16)
+A_CUDA_CSC = CUDA.CUSPARSE.CuSparseMatrixCSC(A_DDNN_16)
 
 a = 12
 
@@ -37,8 +37,8 @@ Base.summary(A_CUDA_CSR)
 length(A_CUDA_CSR.nzVal)
 
 
-(length(A_DDNN.nzval) * 2 )* 8
-Base.summarysize(A_DDNN)
+(length(A_DDNN_16.nzval) * 2 )* 8
+Base.summarysize(A_DDNN_16)
 
 
 

@@ -747,6 +747,11 @@ mg_struct_CUDA.odata_mg[5]
 
 
 
+# TEST Galerkin condition
+initialize_mg_struct_CUDA_Galerkin(mg_struct_CUDA, 6, 6, 4)
+
+
+
 function discretization_error(mg_struct_CUDA)
 
     for i in 1:length(mg_struct_CUDA.u_exact)
